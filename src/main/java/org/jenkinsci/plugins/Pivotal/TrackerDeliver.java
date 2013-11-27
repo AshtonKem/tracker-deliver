@@ -14,6 +14,8 @@ import hudson.tasks.BuildStepDescriptor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import net.sf.json.JSONObject;
+
 import java.util.logging.Logger;
 
 /**
@@ -25,35 +27,43 @@ import java.util.logging.Logger;
  */
 public class TrackerDeliver extends Notifier {
     private final static Logger LOGGER = Logger.getLogger(TrackerDeliver.class.getName());
-    private String trackerToken;
+    private int projectId;
+
+    @DataBoundConstructor
+    public TrackerDeliver(final int projectId) {
+        super();
+        this.projectId = projectId;
+    }
 
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.BUILD;
     }
 
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-        LOGGER.info("Hello there!");
+        LOGGER.info("Hello there! Your ProjectID is " + projectId);
         return true;
     }
 
-    @DataBoundConstructor
-    public TrackerDeliver(final String trackerToken) {
-        super();
-        this.trackerToken = trackerToken;
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl)super.getDescriptor();
     }
 
+    public int getProjectId() {
+        return projectId;
+    }
+
+
     @Extension
-    public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+    public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         private String token;
 
-        public String getToken() {
+        public String getTrackerToken() {
             return token;
         }
 
-        @Override
-        public TrackerDeliver newInstance(StaplerRequest sr) {
-            if (token == null) token = sr.getParameter("trackerToken");
-            return new TrackerDeliver(token);
+        public DescriptorImpl() {
+            load();
         }
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
@@ -65,5 +75,12 @@ public class TrackerDeliver extends Notifier {
             return "Tracker Deliver";
         }
 
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+            JSONObject trackerSettings = formData.getJSONObject("tracker-deliver");
+            token = trackerSettings.getString("trackerToken");
+            save();
+            return super.configure(req,formData);
+        }
     }
 }
