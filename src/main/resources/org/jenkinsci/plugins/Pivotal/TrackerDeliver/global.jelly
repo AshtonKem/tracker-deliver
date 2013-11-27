@@ -12,7 +12,7 @@
     so it should be straightforward to find them.
   -->
   <f:section title="Tracker Deliver" name="tracker-deliver">
-    <f:entry title="API Token" field="token" description="Tracker API Token for the user who will flip stories to delivered">
+    <f:entry title="API Token" field="trackerToken" description="Tracker API Token for the user who will flip stories to delivered">
       <f:password />
     </f:entry>
   </f:section>
