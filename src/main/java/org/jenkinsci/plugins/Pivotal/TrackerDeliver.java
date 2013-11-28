@@ -10,6 +10,8 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.tasks.BuildStepDescriptor;
+import jenkins.model.Jenkins;
+import hudson.ProxyConfiguration;
 
 import hudson.scm.ChangeLogSet;
 
@@ -19,6 +21,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import net.sf.json.JSONObject;
+import net.sf.json.JSONArray;
 
 import hudson.plugins.git.GitChangeSet;
 
@@ -26,6 +29,16 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.io.IOException;
+
+
+import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpStatus;
+
+
 
 /**
  * Created with IntelliJ IDEA.
@@ -36,6 +49,7 @@ import java.util.ArrayList;
  */
 public class TrackerDeliver extends Notifier {
     private final static Logger LOGGER = Logger.getLogger(TrackerDeliver.class.getName());
+    private final static String TRACKER_URL = "http://localhost:3000"; //Testing only!
     private int projectId;
 
     @DataBoundConstructor
@@ -62,6 +76,40 @@ public class TrackerDeliver extends Notifier {
         }
     }
 
+    private HashSet<Integer> finishedTrackerStories() throws IOException{
+        HttpClient client = getHttpClient();
+        String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories?with_state=finished";
+        GetMethod get = new GetMethod(url);
+        get.addRequestHeader("X-TrackerToken", getDescriptor().getTrackerToken());
+        get.addRequestHeader("Content-Type", "application/json");
+        LOGGER.info("URI: " + get.getURI());
+        int responseCode = client.executeMethod(get);
+        String response = get.getResponseBodyAsString();
+        JSONArray stories = JSONArray.fromObject(response);
+        HashSet<Integer> ids = new HashSet<Integer>();
+        for (int i = 0; i < stories.size(); i++) {
+            JSONObject story = (JSONObject)stories.get(i);
+            int id = story.getInt("id");
+            ids.add(id);
+        }
+        return ids;
+    }
+
+    private HttpClient getHttpClient() {
+        HttpClient client = new HttpClient();
+        if (Jenkins.getInstance() != null) {
+            ProxyConfiguration proxy = Jenkins.getInstance().proxy;
+            if (proxy != null) {
+                client.getHostConfiguration().setProxy(proxy.name, proxy.port);
+            }
+        }
+        return client;
+    }
+
+
+
+
+
     public int[] findTrackerIDs(String message) {
         String group = "\\[(fix|finish|complet)(es|ed)?.*\\]";
         ArrayList<String> unchangedIds = new ArrayList<String>();
@@ -80,12 +128,25 @@ public class TrackerDeliver extends Notifier {
         return ids;
     }
 
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-        LOGGER.info("========================================================");
+    private void deliverStory(int id) throws IOException{
+        LOGGER.info("Trying to deliver " + id);
+        HttpClient client = getHttpClient();
+        String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories/" + id + "?current_state=delivered";
+        PutMethod put = new PutMethod(url);
+        put.addRequestHeader("X-TrackerToken", getDescriptor().getTrackerToken());
+        put.addRequestHeader("Content-Type", "application/json");
+        client.executeMethod(put);
+    }
+
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws IOException{
+        HashSet<Integer> finishedStories = finishedTrackerStories();
         for (String s : getCommitMessages(build.getChangeSet())) {
-            LOGGER.info("IDs: " + findTrackerIDs(s));
+            for (int id : findTrackerIDs(s)) {
+                if (finishedStories.contains(id)) {
+                    deliverStory(id);
+                }
+            }
         }
-        LOGGER.info("========================================================");
         return true;
     }
 
