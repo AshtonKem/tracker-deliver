@@ -11,12 +11,21 @@ import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.tasks.BuildStepDescriptor;
 
+import hudson.scm.ChangeLogSet;
+
+import hudson.util.FormValidation;
+
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import net.sf.json.JSONObject;
 
+import hudson.plugins.git.GitChangeSet;
+
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.ArrayList;
 
 /**
  * Created with IntelliJ IDEA.
@@ -39,8 +48,44 @@ public class TrackerDeliver extends Notifier {
         return BuildStepMonitor.BUILD;
     }
 
+    private String[] getCommitMessages(ChangeLogSet<? extends ChangeLogSet.Entry> changeSet) {
+        if (changeSet.getKind() == "git") {
+            Object[] changes = changeSet.getItems();
+            String[] messages = new String[changes.length];
+            for (int i = 0; i < changes.length; i++) {
+                GitChangeSet parsed = (GitChangeSet) changes[i];
+                messages[i] = parsed.getMsg();
+            }
+            return messages;
+        } else {
+            return new String[0];
+        }
+    }
+
+    public int[] findTrackerIDs(String message) {
+        String group = "\\[(fix|finish|complet)(es|ed)?.*\\]";
+        ArrayList<String> unchangedIds = new ArrayList<String>();
+        Matcher brackets = Pattern.compile(group, Pattern.CASE_INSENSITIVE).matcher(message);
+        while (brackets.find()) {
+            String match = brackets.group(0);
+            Matcher matcherIDs = Pattern.compile("#\\d+").matcher(match);
+            while (matcherIDs.find()) {
+                unchangedIds.add(matcherIDs.group(0));
+            }
+        }
+        int[] ids = new int[unchangedIds.size()];
+        for (int i = 0; i < unchangedIds.size(); i++) {
+            ids[i] = Integer.parseInt(unchangedIds.get(i).substring(1));
+        }
+        return ids;
+    }
+
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
-        LOGGER.info("Hello there! Your ProjectID is " + projectId);
+        LOGGER.info("========================================================");
+        for (String s : getCommitMessages(build.getChangeSet())) {
+            LOGGER.info("IDs: " + findTrackerIDs(s));
+        }
+        LOGGER.info("========================================================");
         return true;
     }
 
