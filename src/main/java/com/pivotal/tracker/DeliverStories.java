@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.Pivotal;
+package com.pivotal.tracker;
 
 import hudson.Launcher;
 import hudson.Extension;
@@ -47,13 +47,13 @@ import org.apache.commons.httpclient.HttpStatus;
  * Time: 10:09 AM
  * To change this template use File | Settings | File Templates.
  */
-public class TrackerDeliver extends Notifier {
-    private final static Logger LOGGER = Logger.getLogger(TrackerDeliver.class.getName());
+public class DeliverStories extends Notifier {
+    private final static Logger LOGGER = Logger.getLogger(DeliverStories.class.getName());
     private final static String TRACKER_URL = "http://localhost:3000"; //Testing only!
     private int projectId;
 
     @DataBoundConstructor
-    public TrackerDeliver(final int projectId) {
+    public DeliverStories(final int projectId) {
         super();
         this.projectId = projectId;
     }
@@ -82,7 +82,6 @@ public class TrackerDeliver extends Notifier {
         GetMethod get = new GetMethod(url);
         get.addRequestHeader("X-TrackerToken", getDescriptor().getTrackerToken());
         get.addRequestHeader("Content-Type", "application/json");
-        LOGGER.info("URI: " + get.getURI());
         int responseCode = client.executeMethod(get);
         String response = get.getResponseBodyAsString();
         JSONArray stories = JSONArray.fromObject(response);
@@ -178,12 +177,12 @@ public class TrackerDeliver extends Notifier {
 
         @Override
         public String getDisplayName() {
-            return "Tracker Deliver";
+            return "Deliver Stories";
         }
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            JSONObject trackerSettings = formData.getJSONObject("tracker-deliver");
+            JSONObject trackerSettings = formData.getJSONObject("deliver-stories");
             token = trackerSettings.getString("trackerToken");
             save();
             return super.configure(req,formData);
