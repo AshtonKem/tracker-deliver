@@ -4,6 +4,7 @@ import hudson.Launcher;
 import hudson.Extension;
 
 import hudson.model.AbstractBuild;
+import hudson.model.Result;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildStepMonitor;
@@ -137,12 +138,18 @@ public class DeliverStories extends Notifier {
         client.executeMethod(put);
     }
 
+    private boolean shouldExecute(AbstractBuild<?, ?> build) {
+        return build.getResult().equals(Result.SUCCESS);
+    }
+
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws IOException{
-        HashSet<Integer> finishedStories = finishedTrackerStories();
-        for (String s : getCommitMessages(build.getChangeSet())) {
-            for (int id : findTrackerIDs(s)) {
-                if (finishedStories.contains(id)) {
-                    deliverStory(id);
+        if (shouldExecute(build)) {
+            HashSet<Integer> finishedStories = finishedTrackerStories();
+            for (String s : getCommitMessages(build.getChangeSet())) {
+                for (int id : findTrackerIDs(s)) {
+                    if (finishedStories.contains(id)) {
+                        deliverStory(id);
+                    }
                 }
             }
         }
