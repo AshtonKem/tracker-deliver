@@ -25,7 +25,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import net.sf.json.JSONObject;
-import net.sf.json.JSONArray;
 
 import hudson.plugins.git.GitChangeSet;
 
@@ -35,13 +34,6 @@ import java.util.regex.Matcher;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.io.IOException;
-
-
-import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpStatus;
-
 
 
 /**
@@ -80,36 +72,9 @@ public class DeliverStories extends Notifier {
         }
     }
 
-    private HashSet<Integer> finishedTrackerStories() throws IOException{
-        HttpClient client = getHttpClient();
-        String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories?with_state=finished";
-        GetMethod get = new GetMethod(url);
-        get.addRequestHeader("X-TrackerToken", getDescriptor().getTrackerToken());
-        get.addRequestHeader("Content-Type", "application/json");
-        int responseCode = client.executeMethod(get);
-        String response = get.getResponseBodyAsString();
-        JSONArray stories = JSONArray.fromObject(response);
-        HashSet<Integer> ids = new HashSet<Integer>();
-        for (int i = 0; i < stories.size(); i++) {
-            JSONObject story = (JSONObject)stories.get(i);
-            int id = story.getInt("id");
-            ids.add(id);
-        }
-        return ids;
+    private String getToken() {
+        return getDescriptor().getTrackerToken();
     }
-
-    private HttpClient getHttpClient() {
-        HttpClient client = new HttpClient();
-        if (Jenkins.getInstance() != null) {
-            ProxyConfiguration proxy = Jenkins.getInstance().proxy;
-            if (proxy != null) {
-                client.getHostConfiguration().setProxy(proxy.name, proxy.port);
-            }
-        }
-        return client;
-    }
-
-
 
 
 
@@ -131,27 +96,17 @@ public class DeliverStories extends Notifier {
         return ids;
     }
 
-    private void deliverStory(int id) throws IOException{
-        LOGGER.info("Trying to deliver " + id);
-        HttpClient client = getHttpClient();
-        String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories/" + id + "?current_state=delivered";
-        PutMethod put = new PutMethod(url);
-        put.addRequestHeader("X-TrackerToken", getDescriptor().getTrackerToken());
-        put.addRequestHeader("Content-Type", "application/json");
-        client.executeMethod(put);
-    }
-
     private boolean shouldExecute(AbstractBuild<?, ?> build) {
         return build.getResult().equals(Result.SUCCESS);
     }
 
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws IOException{
         if (shouldExecute(build)) {
-            HashSet<Integer> finishedStories = finishedTrackerStories();
+            HashSet<Integer> finishedStories = finishedTrackerStories(projectId, getToken());
             for (String s : getCommitMessages(build.getChangeSet())) {
                 for (int id : findTrackerIDs(s)) {
                     if (finishedStories.contains(id)) {
-                        deliverStory(id);
+                        deliverStory(projectId, getToken(), id);
                     }
                 }
             }
