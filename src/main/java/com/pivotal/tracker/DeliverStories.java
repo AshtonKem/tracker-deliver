@@ -1,5 +1,7 @@
 package com.pivotal.tracker;
 
+import com.pivotal.tracker.TrackerInterface;
+
 import hudson.Launcher;
 import hudson.Extension;
 
@@ -20,6 +22,7 @@ import hudson.util.FormValidation;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 import net.sf.json.JSONObject;
 import net.sf.json.JSONArray;
@@ -180,6 +183,10 @@ public class DeliverStories extends Notifier {
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
             return true;
+        }
+
+        public FormValidation doTestToken(@QueryParameter("trackerToken") final String token) {
+            return TrackerInterface.doTestToken(token);
         }
 
         @Override

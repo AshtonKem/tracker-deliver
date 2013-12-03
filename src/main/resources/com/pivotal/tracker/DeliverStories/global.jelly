@@ -15,5 +15,6 @@
     <f:entry title="API Token" field="trackerToken" description="Tracker API Token for the user who will flip stories to delivered">
       <f:password />
     </f:entry>
+    <f:validateButton title="${%Test Token}" progress="${%Testing...}" method="testToken" with="trackerToken" />
   </f:section>
 </j:jelly>
