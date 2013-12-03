@@ -45,7 +45,6 @@ import java.io.IOException;
  */
 public class DeliverStories extends Notifier {
     private final static Logger LOGGER = Logger.getLogger(DeliverStories.class.getName());
-    private final static String TRACKER_URL = "http://localhost:3000"; //Testing only!
     private int projectId;
 
     @DataBoundConstructor
