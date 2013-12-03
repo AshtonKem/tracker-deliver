@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.jenkinsci.plugins.Pivotal.DeliverStories;
+import com.pivotal.tracker.DeliverStories;
 import static org.junit.Assert.*;
 
 
