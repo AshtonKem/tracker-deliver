@@ -101,11 +101,11 @@ public class DeliverStories extends Notifier {
 
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws IOException{
         if (shouldExecute(build)) {
-            HashSet<Integer> finishedStories = finishedTrackerStories(projectId, getToken());
+            HashSet<Integer> finishedStories = TrackerInterface.finishedTrackerStories(projectId, getToken());
             for (String s : getCommitMessages(build.getChangeSet())) {
                 for (int id : findTrackerIDs(s)) {
                     if (finishedStories.contains(id)) {
-                        deliverStory(projectId, getToken(), id);
+                        TrackerInterface.deliverStory(projectId, getToken(), id);
                     }
                 }
             }

@@ -15,6 +15,8 @@ import net.sf.json.JSONArray;
 
 import java.io.IOException;
 import java.util.logging.Logger;
+import java.util.HashSet;
+
 
 
 class TrackerInterface {
@@ -77,7 +79,7 @@ class TrackerInterface {
         HttpClient client = getHttpClient();
         String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories/" + id + "?current_state=delivered";
         PutMethod put = new PutMethod(url);
-        put.addRequestHeader("X-TrackerToken", getDescriptor().getTrackerToken());
+        put.addRequestHeader("X-TrackerToken", token);
         put.addRequestHeader("Content-Type", "application/json");
         client.executeMethod(put);
     }
