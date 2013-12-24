@@ -1,0 +1,11 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+  <div>
+    <h3> Delivered Stories </h3>
+    <ul>
+      <j:forEach items="${it.deliveredStories()}" var="story">
+        <li>${story}</li>
+      </j:forEach>
+    </ul>
+  </div>
+</j:jelly>

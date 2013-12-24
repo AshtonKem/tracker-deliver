@@ -16,11 +16,12 @@ import net.sf.json.JSONArray;
 import java.io.IOException;
 import java.util.logging.Logger;
 import java.util.HashSet;
+import java.util.HashMap;
 
 
 
 class TrackerInterface {
-    public final static String TRACKER_URL = "https://www.pivotaltracker.com";
+    public final static String TRACKER_URL = "http://localhost:3000";
     private final static Logger LOGGER = Logger.getLogger(TrackerInterface.class.getName());
 
     public static FormValidation doTestToken(String token) {
@@ -56,31 +57,38 @@ class TrackerInterface {
         return client;
     }
 
-    public static HashSet<Integer> finishedTrackerStories(int projectId, String token) throws IOException{
+    public static HashSet<Story> finishedTrackerStories(int projectId, String token) throws IOException{
+        HashSet<Story> stories = new HashSet<Story>();
         HttpClient client = getHttpClient();
-        String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories?with_state=finished";
+        String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories?with_state=finished&fields=id,name,url";
         GetMethod get = new GetMethod(url);
         get.addRequestHeader("X-TrackerToken", token);
         get.addRequestHeader("Content-Type", "application/json");
         int responseCode = client.executeMethod(get);
-        String response = get.getResponseBodyAsString();
-        JSONArray stories = JSONArray.fromObject(response);
-        HashSet<Integer> ids = new HashSet<Integer>();
-        for (int i = 0; i < stories.size(); i++) {
-            JSONObject story = (JSONObject)stories.get(i);
-            int id = story.getInt("id");
-            ids.add(id);
+        if (responseCode != 200) {
+            // Failure case. Unauthorized or similar.
+            return stories;
         }
-        return ids;
+        String response = get.getResponseBodyAsString();
+        JSONArray storyArray = JSONArray.fromObject(response);
+        for (int i = 0; i < storyArray.size(); i++) {
+            JSONObject story = (JSONObject)storyArray.get(i);
+            stories.add(new Story(story.getInt("id"), projectId, token, story.getString("name"), story.getString("url"), Story.Status.FINISHED));
+        }
+        return stories;
     }
 
-    public static void deliverStory(int projectId, String token, int id) throws IOException{
+
+
+    public static boolean deliverStory(int projectId, String token, int id) throws IOException{
         LOGGER.info("Trying to deliver " + id);
         HttpClient client = getHttpClient();
         String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories/" + id + "?current_state=delivered";
         PutMethod put = new PutMethod(url);
         put.addRequestHeader("X-TrackerToken", token);
         put.addRequestHeader("Content-Type", "application/json");
-        client.executeMethod(put);
+        int returnCode = client.executeMethod(put);
+        LOGGER.info("Delivering story " + id + " resulted in code " + returnCode);
+        return (returnCode >= 200 && returnCode <= 299);
     }
 }
