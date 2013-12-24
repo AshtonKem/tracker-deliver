@@ -16,6 +16,7 @@ import net.sf.json.JSONArray;
 import java.io.IOException;
 import java.util.logging.Logger;
 import java.util.HashSet;
+import java.util.HashMap;
 
 
 
@@ -57,15 +58,19 @@ class TrackerInterface {
     }
 
     public static HashSet<Integer> finishedTrackerStories(int projectId, String token) throws IOException{
+        HashSet<Integer> ids = new HashSet<Integer>();
         HttpClient client = getHttpClient();
         String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories?with_state=finished";
         GetMethod get = new GetMethod(url);
         get.addRequestHeader("X-TrackerToken", token);
         get.addRequestHeader("Content-Type", "application/json");
         int responseCode = client.executeMethod(get);
+        if (responseCode != 200) {
+            // Failure case. Unauthorized or similar.
+            return ids;
+        }
         String response = get.getResponseBodyAsString();
         JSONArray stories = JSONArray.fromObject(response);
-        HashSet<Integer> ids = new HashSet<Integer>();
         for (int i = 0; i < stories.size(); i++) {
             JSONObject story = (JSONObject)stories.get(i);
             int id = story.getInt("id");
@@ -74,13 +79,13 @@ class TrackerInterface {
         return ids;
     }
 
-    public static void deliverStory(int projectId, String token, int id) throws IOException{
+    public static boolean deliverStory(int projectId, String token, int id) throws IOException{
         LOGGER.info("Trying to deliver " + id);
         HttpClient client = getHttpClient();
         String url = TRACKER_URL + "/services/v5/projects/" + projectId + "/stories/" + id + "?current_state=delivered";
         PutMethod put = new PutMethod(url);
         put.addRequestHeader("X-TrackerToken", token);
         put.addRequestHeader("Content-Type", "application/json");
-        client.executeMethod(put);
+        return client.executeMethod(put) == 200;
     }
 }

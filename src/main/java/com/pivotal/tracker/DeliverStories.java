@@ -1,12 +1,15 @@
 package com.pivotal.tracker;
 
 import com.pivotal.tracker.TrackerInterface;
+import com.pivotal.tracker.TrackerAction;
 
 import hudson.Launcher;
 import hudson.Extension;
 
+
 import hudson.model.AbstractBuild;
 import hudson.model.Result;
+import hudson.model.Action;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildStepMonitor;
@@ -33,6 +36,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.io.IOException;
 
 
@@ -102,13 +106,16 @@ public class DeliverStories extends Notifier {
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws IOException{
         if (shouldExecute(build)) {
             HashSet<Integer> finishedStories = TrackerInterface.finishedTrackerStories(projectId, getToken());
+            HashMap<Integer, Boolean> deliveredStories = new HashMap<Integer, Boolean>();
             for (String s : getCommitMessages(build.getChangeSet())) {
                 for (int id : findTrackerIDs(s)) {
                     if (finishedStories.contains(id)) {
-                        TrackerInterface.deliverStory(projectId, getToken(), id);
+                        deliveredStories.put(id, TrackerInterface.deliverStory(projectId, getToken(), id));
                     }
                 }
             }
+            Action action = new TrackerAction(deliveredStories);
+            build.addAction(action);
         }
         return true;
     }
